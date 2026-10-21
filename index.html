@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Linear Regression Lab - Interactive Curve Fitting Playground</title>
+<meta name="description" content="Drag points and watch least squares and gradient descent fit a line live. Residuals, R-squared, polynomial fits, CSV import, PNG export. Free, offline, no sign-up.">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0f2145">
+<link rel="stylesheet" href="design.css">
+<style>
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media(max-width:900px){.lab{grid-template-columns:1fr}}
+.canvas-card{padding:14px}
+#cv{width:100%;height:auto;border-radius:10px;touch-action:none;cursor:crosshair;display:block}
+.eq-box{font-size:1.12rem;font-weight:700;letter-spacing:-.01em;text-align:center;padding:10px;background:var(--bg-soft);border:1px solid var(--line);border-radius:11px;font-variant-numeric:tabular-nums;min-height:46px;display:flex;align-items:center;justify-content:center}
+.eq-box .accent-word{font-variant-numeric:tabular-nums}
+.tog-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
+.tog{display:inline-flex;align-items:center;gap:7px;font-size:.84rem;font-weight:600;color:var(--ink-soft);cursor:pointer;user-select:none;padding:5px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg-card)}
+.tog input{accent-color:var(--accent);width:15px;height:15px}
+.side .card{margin-bottom:14px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.gd-status{font-size:.84rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+#lossCv{width:100%;height:90px;border-radius:8px;background:var(--bg-soft);border:1px solid var(--line)}
+.hint-line{font-size:.8rem;color:var(--ink-faint);text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<header class="app-header"><div class="header-inner">
+  <div class="brand"><span class="brand-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 20 21 4"/><circle cx="6" cy="16" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18" cy="9" r="1.6" fill="currentColor"/></svg></span>Linear Regression Lab</div>
+  <div class="header-spacer"></div>
+  <button class="icon-btn" onclick="toggleTheme()" title="Dark / light mode" aria-label="Toggle dark mode"><svg class="moon-i" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg><svg class="sun-i" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2v2.4M12 19.6V22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2 12h2.4M19.6 12H22M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/></svg></button>
+</div></header>
+<main class="app-main">
+  <div class="hero">
+    <h1>Watch a line <span class="accent-word">learn to fit</span> your data</h1>
+    <p>Click to add points, drag them around, and the fit updates live. Switch on gradient descent to watch the line learn step by step, with the loss curve underneath.</p>
+  </div>
+  <div class="lab">
+    <div class="card canvas-card">
+      <canvas id="cv" width="920" height="560" aria-label="Scatter plot with regression line"></canvas>
+      <div class="hint-line">Click empty space to add a point · drag to move · double-click a point to remove it</div>
+      <div style="height:10px"></div>
+      <div class="eq-box" id="eq">Add at least 2 points to fit a line</div>
+      <div style="height:10px"></div>
+      <div class="tog-row">
+        <label class="tog"><input type="checkbox" id="showResid"> Residuals</label>
+        <label class="tog"><input type="checkbox" id="showBand"> 95% band</label>
+        <div class="seg" id="degSeg"><button data-d="1" class="on">Linear</button><button data-d="2">Quadratic</button><button data-d="3">Cubic</button></div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="btn-row">
+        <button class="btn btn-soft" id="presetBtn">Load preset: noisy line</button>
+        <button class="btn btn-ghost" id="clearBtn">Clear points</button>
+        <button class="btn btn-ghost" id="pngBtn">Save PNG</button>
+        <button class="btn btn-ghost" id="csvBtn">Export CSV</button>
+        <label class="btn btn-ghost" style="margin:0">Import CSV<input type="file" id="csvIn" accept=".csv,text/csv" hidden></label>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>Fit quality</div>
+        <div style="height:12px"></div>
+        <div class="stat-grid" style="grid-template-columns:1fr 1fr">
+          <div class="stat"><b id="stR2">-</b><span>R²</span></div>
+          <div class="stat"><b id="stR">-</b><span>Correlation r</span></div>
+          <div class="stat"><b id="stMSE">-</b><span>MSE</span></div>
+          <div class="stat"><b id="stN">0</b><span>Points</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Gradient descent</div>
+        <div class="card-sub">Watch the line learn instead of solving in one step.</div>
+        <div style="height:12px"></div>
+        <div class="field"><label>Learning rate: <b id="lrVal">0.05</b></label><input type="range" id="lr" min="0.001" max="0.3" step="0.001" value="0.05"></div>
+        <div style="height:10px"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="gdBtn">Start learning</button>
+          <button class="btn btn-ghost" id="gdStep">Single step</button>
+        </div>
+        <div style="height:10px"></div>
+        <div class="gd-status" id="gdStatus">Idle. Exact solution is shown in the mean time.</div>
+        <div style="height:10px"></div>
+        <canvas id="lossCv" width="540" height="180" aria-label="Loss curve"></canvas>
+      </div>
+      <div class="note"><b>Honest note:</b> fits are least-squares on the points you place. R² near 1 means a strong linear pattern, not causation.</div>
+    </div>
+  </div>
+</main>
+<footer class="app-footer">Runs 100% offline · <a href="https://github.com/AKASH991833/linear-regression-lab" rel="noopener">Source on GitHub</a></footer>
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
