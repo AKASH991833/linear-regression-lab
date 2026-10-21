@@ -4,7 +4,7 @@ An interactive playground for understanding regression. Place points on the canv
 
 **Live demo: https://akash991833.github.io/linear-regression-lab/**
 
-![Desktop](docs/screenshot-desktop.png)
+![Desktop](screenshots/desktop-light.png)
 
 ## Features
 
@@ -17,7 +17,7 @@ An interactive playground for understanding regression. Place points on the canv
 - **Dark and light mode**, mobile-friendly touch dragging.
 - **PWA**: installable, fully offline after first load.
 
-![Mobile](docs/screenshot-mobile.png)
+![Mobile](screenshots/mobile-light.png)
 
 ## Honest limits
 
